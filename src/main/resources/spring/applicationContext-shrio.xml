@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--Shrio过滤器工厂Bean 通过属性注入的方式注入-->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean" depends-on="myAuthorizationFilter">
+        <!--安全管理器-->
+        <property name="securityManager" ref="securityManager"/>
+        <!--认证相关配置:当用户没有登陆访问资源就会跳转到此页面-->
+        <property name="loginUrl" value="/login.html"/>
+        <!--授权相关配置:当用户没有访问权限的资源就跳转到次页面-->
+        <property name="unauthorizedUrl" value="/error.html"/>
+        <!--perms为过滤器的字段名称，这里配置会顶替内置的perms过滤器-->
+        <property name="filters">
+            <map>
+                <entry key="perms" value-ref="myAuthorizationFilter"></entry>
+            </map>
+        </property>
+        <!--过滤链:针对不同url指定不同的过滤器-->
+        <!--配置login.do、error.html为不需要认证的URL，配置哪些资源需要哪些权限才能访问
+            anon为不需要认证和授权都可以访问
+            perms为需要什么权限才能访问资源
+            authc为需要认证后才能访问资源
+            注意：一定要按照以上的顺序写配置，不然权限拦截会失败
+        -->
+        <property name="filterChainDefinitions">
+            <value>
+                /error.html = anon
+                /login.html = anon
+                /login.do = anon
+                /html/custom.html = perms["用户"]
+                /html/manager.html = perms["管理员","超级管理员"]
+                /*.do = authc
+                /*.html = authc
+                /* = authc
+            </value>
+        </property>
+
+    </bean>
+    <!--用户自定义的Realm-->
+    <bean id="userRealm" class="work.yanghao.realm.UserRealm">
+        <property name="userService" ref="userService"></property>
+    </bean>
+    <!--自定义授权过滤器-->
+    <bean id="myAuthorizationFilter" class="work.yanghao.filter.MyAuthorizationFilter"></bean>
+    <!--安全管理器 Shrio核心组件：所有具体的交互都通过 SecurityManager 进行控制；它管理着所有 Subject、且负责进行认证和授权、及会话、缓存的管理-->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="userRealm"></property>
+    </bean>
+</beans>
